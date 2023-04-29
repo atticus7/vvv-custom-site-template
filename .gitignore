@@ -1,0 +1,8 @@
+.DS_Store
+
+# But don't ignore these files that VVV needs
+!.gitignore
+!README.md
+!/provision/vvv-init.sh
+!/provision/vvv-nginx-default.conf
+
