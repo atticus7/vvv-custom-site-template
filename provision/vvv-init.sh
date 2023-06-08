@@ -295,6 +295,9 @@ restore_or_install() {
 	    gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
       restore_db_backup "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}"
     elif [ "${DB_LINK}" != "" ]; then
+      if [ ! -d "${PUBLIC_DIR_PATH}/content/db" ]; then
+          mkdir "${PUBLIC_DIR_PATH}/content/db"
+      fi
       wget ${DB_LINK} -P "${PUBLIC_DIR_PATH}/content/db/"
       gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
       restore_db_backup "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}"
