@@ -8,7 +8,8 @@ echo " * Custom site template provisioner ${VVV_SITE_NAME} - downloads and insta
 # fetch the first host as the primary domain. If none is available, generate a default using the site name
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
-DB_DUMP=$(get_config_value 'db_dump' "database.sql")
+DB_DUMP=$(get_config_value 'db_dump' 'database.sql')
+DB_LINK=$(get_config_value 'db_link' '')
 DB_PREFIX=$(get_config_value 'db_prefix' 'wp_')
 DOMAIN=$(get_primary_host "${VVV_SITE_NAME}".test)
 
@@ -45,25 +46,78 @@ setup_nginx_folders() {
   #noroot mkdir -p "${PUBLIC_DIR_PATH}"
 }
 
-install_plugins() {
-  WP_PLUGINS=$(get_config_value 'install_plugins' '')
-  if [ ! -z "${WP_PLUGINS}" ]; then
-    isurl='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
-    for plugin in ${WP_PLUGINS//- /$'\n'}; do
-      if [[ "${plugin}" =~ $isurl ]]; then
-        echo " ! Warning, a URL was found for this plugin, attempting install and activate with --force set for ${plugin}"
-        noroot wp plugin install "${plugin}" --activate --force
-      else
-        if noroot wp plugin is-installed "${plugin}"; then
-          echo " * The ${plugin} plugin is already installed."
-        else
-          echo " * Installing and activating plugin: '${plugin}'"
-          noroot wp plugin install "${plugin}" --activate
-        fi
-      fi
-    done
-  fi
+#install_plugins() {
+#  WP_PLUGINS=$(get_config_value 'install_plugins' '')
+#  if [ ! -z "${WP_PLUGINS}" ]; then
+#    isurl='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+#    for plugin in ${WP_PLUGINS//- /$'\n'}; do
+#      if [[ "${plugin}" =~ $isurl ]]; then
+#        echo " ! Warning, a URL was found for this plugin, attempting install and activate with --force set for ${plugin}"
+#        noroot wp plugin install "${plugin}" --activate --force
+#      else
+#        if noroot wp plugin is-installed "${plugin}"; then
+#          echo " * The ${plugin} plugin is already installed."
+#        else
+#          echo " * Installing and activating plugin: '${plugin}'"
+#          noroot wp plugin install "${plugin}" --activate
+#        fi
+#      fi
+#    done
+#  fi
+#}
+
+install_plugin() {
+    plugin=$1
+    if noroot wp plugin is-installed "${plugin}" --path=html/wp --skip-plugins --skip-themes; then
+      echo " * The ${plugin} plugin is already installed."
+    else
+      echo " * Installing plugin: '${plugin}'"
+      noroot wp plugin install "${plugin}" --path=html/wp --skip-plugins --skip-themes
+    fi
 }
+
+install_plugins() {
+  cd "${VVV_PATH_TO_SITE}"
+  echo " * Installing and activating zipped premium plugins"
+  PREMIUM_PLUGINS=()
+  ZIPPED_PREMIUM_PLUGINS=($( ls premium-plugins )) #Add () to convert output to array
+  for plugin in "${ZIPPED_PREMIUM_PLUGINS[@]}"; do
+    #store in array for later
+    PREMIUM_PLUGINS+=("${plugin%.*}")
+    echo " * Installing the ${plugin%.*} plugin"
+    noroot wp plugin install premium-plugins/"${plugin}" --force --path=html/wp --skip-plugins --skip-themes
+  done
+  echo " * Get Plugins List"
+  PLUGINS_FILE=plugins.txt
+  if test -f "$PLUGINS_FILE"; then
+    readarray -t WP_PLUGINS < "$PLUGINS_FILE"
+    #echo "${WP_PLUGINS[@]}"
+	if [ ! -z "${WP_PLUGINS[*]}" ]; then
+		echo " * Installing Plugins..."
+    for plugin in "${WP_PLUGINS[@]}"; do
+      install_plugin "${plugin}"
+    done
+    COMPOSER_PLUGINS_FILE=composer-plugins.txt
+    if test -f "$COMPOSER_PLUGINS_FILE"; then
+        readarray -t COMPOSER_PLUGINS < "$COMPOSER_PLUGINS_FILE"
+    else
+        COMPOSER_PLUGINS=()
+    fi
+    echo " * Activating Composer Plugins..."
+    for plugin in "${COMPOSER_PLUGINS[@]}"; do
+      install_plugin "${plugin}"
+    done
+    echo " * Updating plugins if necessary"
+    noroot wp plugin update $(noroot wp plugin list --update=none --status=active --field=name --path=html/wp --skip-plugins --skip-themes) --path=html/wp --skip-plugins --skip-themes
+	else
+		echo " * No plugins to install"
+	fi
+  else
+    echo " ! Warning: No plugins.txt found"
+  fi
+  cd "${PUBLIC_DIR_PATH}"
+}
+
 
 install_themes() {
   WP_THEMES=$(get_config_value 'install_themes' '')
@@ -238,7 +292,11 @@ restore_or_install() {
 
     echo " * WordPress is present but isn't installed to the database, checking for SQL dumps in content/${DB_DUMP}.gz or the main backup folder."
     if [ -f "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz" ]; then
-	  gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
+	    gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
+      restore_db_backup "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}"
+    elif [ "${DB_LINK}" != "" ]; then
+      wget ${DB_LINK} -P "${PUBLIC_DIR_PATH}/content/db/"
+      gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
       restore_db_backup "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}"
     elif [ -f "/srv/database/backups/${VVV_SITE_NAME}.sql" ]; then
       restore_db_backup "/srv/database/backups/${VVV_SITE_NAME}.sql"
