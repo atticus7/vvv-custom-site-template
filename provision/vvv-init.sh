@@ -49,12 +49,12 @@ setup_nginx_folders() {
 setup_composer_auth() {
   echo " * Creating auth.json so composer can install premium plugins"
   echo "Enter your ACF Licence Key"
-  read -r ACF_LICENCE_KEY
+  read -e ACF_LICENCE_KEY
   echo "Enter your Admin Columns Pro Token"
-  read -r AC_TOKEN
+  read -e AC_TOKEN
   sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" -e "s|@@@ACF_LICENCE_KEY@@@|${ACF_LICENCE_KEY}|" -e "s|@@@AC_TOKEN@@@|${AC_TOKEN}|" "${PUBLIC_DIR_PATH}/auth-template.json" > "${PUBLIC_DIR_PATH}/auth.json"
   echo "Enter your Yoast SEO Token"
-  read -r YOAST_SEO_TOKEN
+  read -e YOAST_SEO_TOKEN
   noroot composer config -g http-basic.my.yoast.com token "${YOAST_SEO_TOKEN}"
 }
 
