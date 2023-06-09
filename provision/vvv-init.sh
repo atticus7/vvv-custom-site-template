@@ -46,6 +46,16 @@ setup_nginx_folders() {
   #noroot mkdir -p "${PUBLIC_DIR_PATH}"
 }
 
+setup_auth_json() {
+  echo " * Creating auth.json so composer can install premium plugins"
+  echo "Enter your ACF Licence Key"
+  read -r ACF_LICENCE_KEY
+  echo "Enter your Admin Columns Pro Token"
+  read -r AC_TOKEN
+  sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" -e "s|@@@ACF_LICENCE_KEY@@@|${ACF_LICENCE_KEY}|" -e "s|@@@AC_TOKEN@@@|${AC_TOKEN}|" auth-template.json > auth.json
+
+}
+
 #install_plugins() {
 #  WP_PLUGINS=$(get_config_value 'install_plugins' '')
 #  if [ ! -z "${WP_PLUGINS}" ]; then
@@ -196,7 +206,8 @@ setup_wp_config_constants(){
 
 restore_db_backup() {
   echo " * Found a database backup at ${1}. Restoring the site"
-#  wp-config credentials are all determined in the .env - copied from the .env-example in the site repo
+#  wp-config credentials are all determined in the .env built here using template.env
+  sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
 #  noroot wp config set DB_USER "wp"
 #  noroot wp config set DB_PASSWORD "wp"
 #  noroot wp config set DB_HOST "localhost"
@@ -319,6 +330,7 @@ cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
 setup_cli
 setup_database
 setup_nginx_folders
+setup_auth_json
 
 if [ "${WP_TYPE}" == "none" ]; then
 # echo " * wp_type was set to none, provisioning WP was skipped, moving to Nginx configs"
