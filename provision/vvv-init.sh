@@ -342,7 +342,7 @@ if [ "${WP_TYPE}" == "none" ]; then
 	  echo " * Install WP as a dependency along with other dependencies"
   	noroot composer u
     if ! $(noroot wp core is-installed ); then
-      exit 1
+      #exit 1
       restore_or_install
       echo " * replacing all db references to the live domain with the dev domain"
       wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
@@ -361,7 +361,7 @@ else
 
   if ! $(noroot wp core is-installed ); then
     echo " * SOMETHING HAS GONE WRONG"
-    exit 1
+    #exit 1
 	  restore_or_install
   else
     update_wp
