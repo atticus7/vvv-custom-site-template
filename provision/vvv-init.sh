@@ -46,14 +46,16 @@ setup_nginx_folders() {
   #noroot mkdir -p "${PUBLIC_DIR_PATH}"
 }
 
-setup_auth_json() {
+setup_composer_auth() {
   echo " * Creating auth.json so composer can install premium plugins"
   echo "Enter your ACF Licence Key"
   read -r ACF_LICENCE_KEY
   echo "Enter your Admin Columns Pro Token"
   read -r AC_TOKEN
-  sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" -e "s|@@@ACF_LICENCE_KEY@@@|${ACF_LICENCE_KEY}|" -e "s|@@@AC_TOKEN@@@|${AC_TOKEN}|" auth-template.json > auth.json
-
+  sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" -e "s|@@@ACF_LICENCE_KEY@@@|${ACF_LICENCE_KEY}|" -e "s|@@@AC_TOKEN@@@|${AC_TOKEN}|" "${PUBLIC_DIR_PATH}/auth-template.json" > "${PUBLIC_DIR_PATH}/auth.json"
+  echo "Enter your Yoast SEO Token"
+  read -r YOAST_SEO_TOKEN
+  noroot composer config -g http-basic.my.yoast.com token "${YOAST_SEO_TOKEN}"
 }
 
 #install_plugins() {
@@ -206,8 +208,6 @@ setup_wp_config_constants(){
 
 restore_db_backup() {
   echo " * Found a database backup at ${1}. Restoring the site"
-#  wp-config credentials are all determined in the .env built here using template.env
-  sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
 #  noroot wp config set DB_USER "wp"
 #  noroot wp config set DB_PASSWORD "wp"
 #  noroot wp config set DB_HOST "localhost"
@@ -325,13 +325,14 @@ mkdir -p "${VVV_PATH_TO_SITE}"
 cd "${VVV_PATH_TO_SITE}"
 cp -r ../../tmp/* . 
 rm -rf ../../tmp
-cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
-
+#cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
+#  wp-config credentials are all determined in the .env built here using template.env
+sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
 
 setup_cli
 setup_database
 setup_nginx_folders
-setup_auth_json
+setup_composer_auth
 
 if [ "${WP_TYPE}" == "none" ]; then
 # echo " * wp_type was set to none, provisioning WP was skipped, moving to Nginx configs"
@@ -341,7 +342,7 @@ if [ "${WP_TYPE}" == "none" ]; then
 	  echo " * Install WP as a dependency along with other dependencies"
   	noroot composer u
     if ! $(noroot wp core is-installed ); then
-      exit 1
+      #exit 1
       restore_or_install
       echo " * replacing all db references to the live domain with the dev domain"
       wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
@@ -360,7 +361,7 @@ else
 
   if ! $(noroot wp core is-installed ); then
     echo " * SOMETHING HAS GONE WRONG"
-    exit 1
+    #exit 1
 	  restore_or_install
   else
     update_wp
