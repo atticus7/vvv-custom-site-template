@@ -309,6 +309,7 @@ restore_or_install() {
       if [ ! -d "${PUBLIC_DIR_PATH}/content/db" ]; then
           mkdir "${PUBLIC_DIR_PATH}/content/db"
       fi
+      echo " * Downloading database from dropbox"
       wget ${DB_LINK} -P "${PUBLIC_DIR_PATH}/content/db/"
       gzip -d ${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}.gz;
       restore_db_backup "${PUBLIC_DIR_PATH}/content/db/${DB_DUMP}"
@@ -336,13 +337,14 @@ if [ "${WP_TYPE}" == "none" ]; then
 # echo " * wp_type was set to none, provisioning WP was skipped, moving to Nginx configs"
   echo " * wp_type was set to none, so provisioning WP as a dependency using composer along with other dependencies"
   if [[ -f "${PUBLIC_DIR_PATH}/composer.json" ]]; then
-	cd "${PUBLIC_DIR_PATH}"
+	  cd "${PUBLIC_DIR_PATH}"
+	  echo " * Install WP as a dependency along with other dependencies"
   	noroot composer u
-	if ! $(noroot wp core is-installed ); then
-		restore_or_install
-		echo " * replacing all db references to the live domain with the dev domain"
-		wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
-	fi
+    if ! $(noroot wp core is-installed ); then
+      restore_or_install
+      echo " * replacing all db references to the live domain with the dev domain"
+      wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
+    fi
   fi
 else
   echo " * Install type is '${WP_TYPE}'"
@@ -356,6 +358,7 @@ else
   fi
 
   if ! $(noroot wp core is-installed ); then
+    echo " * SOMETHING HAS GONE WRONG"
 	  restore_or_install
   else
     update_wp
