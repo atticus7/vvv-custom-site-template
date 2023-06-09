@@ -19,6 +19,10 @@ WP_LOCALE=$(get_config_value 'locale' 'en_US')
 WP_TYPE=$(get_config_value 'wp_type' "single")
 WP_VERSION=$(get_config_value 'wp_version' 'latest')
 
+ACF_LICENCE_KEY=$(get_config_value 'acf_licence_key' '')
+AC_TOKEN=$(get_config_value 'ac_token' '')
+YOAST_SEO_TOKEN=$(get_config_value 'yoast_seo_token' '')
+
 VVV_PATH_PROVISION="${VVV_PATH_TO_SITE}"
 
 VVV_PATH_TO_SITE="${VVV_PATH_TO_SITE}/${DOMAIN}"
@@ -46,15 +50,9 @@ setup_nginx_folders() {
   #noroot mkdir -p "${PUBLIC_DIR_PATH}"
 }
 
+
 setup_composer_auth() {
-  echo " * Creating auth.json so composer can install premium plugins"
-  echo "Enter your ACF Licence Key"
-  read -e ACF_LICENCE_KEY
-  echo "Enter your Admin Columns Pro Token"
-  read -e AC_TOKEN
   sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" -e "s|@@@ACF_LICENCE_KEY@@@|${ACF_LICENCE_KEY}|" -e "s|@@@AC_TOKEN@@@|${AC_TOKEN}|" "${PUBLIC_DIR_PATH}/auth-template.json" > "${PUBLIC_DIR_PATH}/auth.json"
-  echo "Enter your Yoast SEO Token"
-  read -e YOAST_SEO_TOKEN
   noroot composer config -g http-basic.my.yoast.com token "${YOAST_SEO_TOKEN}"
 }
 
@@ -328,10 +326,6 @@ rm -rf ../../tmp
 #cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
 #  wp-config credentials are all determined in the .env built here using template.env
 sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
-
-echo "Enter some text"
-read -e WIBBLE
-echo ${WIBBLE}
 
 setup_cli
 setup_database
