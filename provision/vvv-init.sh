@@ -329,6 +329,10 @@ rm -rf ../../tmp
 #  wp-config credentials are all determined in the .env built here using template.env
 sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
 
+echo "Enter some text"
+read -e WIBBLE
+echo ${WIBBLE}
+
 setup_cli
 setup_database
 setup_nginx_folders
