@@ -78,11 +78,11 @@ setup_composer_auth() {
 
 install_plugin() {
     plugin=$1
-    if noroot wp plugin is-installed "${plugin}" --path=html/wp --skip-plugins --skip-themes; then
+    if noroot wp plugin is-installed "${plugin}" --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes; then
       echo " * The ${plugin} plugin is already installed."
     else
       echo " * Installing plugin: '${plugin}'"
-      noroot wp plugin install "${plugin}" --path=html/wp --skip-plugins --skip-themes
+      noroot wp plugin install "${plugin}" --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes
     fi
 }
 
@@ -95,7 +95,7 @@ install_plugins() {
     #store in array for later
     PREMIUM_PLUGINS+=("${plugin%.*}")
     echo " * Installing the ${plugin%.*} plugin"
-    noroot wp plugin install premium-plugins/"${plugin}" --force --path=html/wp --skip-plugins --skip-themes
+    noroot wp plugin install premium-plugins/"${plugin}" --force --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes
   done
   echo " * Get Plugins List"
   PLUGINS_FILE=plugins.txt
@@ -118,7 +118,7 @@ install_plugins() {
       install_plugin "${plugin}"
     done
     echo " * Updating plugins if necessary"
-    noroot wp plugin update $(noroot wp plugin list --update=none --status=active --field=name --path=html/wp --skip-plugins --skip-themes) --path=html/wp --skip-plugins --skip-themes
+    noroot wp plugin update $(noroot wp plugin list --update=none --status=active --field=name --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes) --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes
 	else
 		echo " * No plugins to install"
 	fi
@@ -211,7 +211,7 @@ restore_db_backup() {
 #  noroot wp config set DB_HOST "localhost"
 #  noroot wp config set DB_NAME "${DB_NAME}"
 #  noroot wp config set table_prefix "${DB_PREFIX}"
-   noroot wp db import "${1}"
+   noroot wp db import "${1}" --path="${PUBLIC_DIR_PATH}/wp" --skip-plugins --skip-themes
   echo " * Installed database backup"
 }
 
@@ -340,7 +340,6 @@ if [ "${WP_TYPE}" == "none" ]; then
 	  echo " * Install WP as a dependency along with other dependencies"
   	noroot composer u
     if ! $(noroot wp core is-installed ); then
-      #exit 1
       restore_or_install
       echo " * replacing all db references to the live domain with the dev domain"
       wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
@@ -358,8 +357,6 @@ else
   fi
 
   if ! $(noroot wp core is-installed ); then
-    echo " * SOMETHING HAS GONE WRONG"
-    #exit 1
 	  restore_or_install
   else
     update_wp
