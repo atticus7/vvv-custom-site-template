@@ -12,6 +12,8 @@ DB_DUMP=$(get_config_value 'db_dump' 'database.sql')
 DB_LINK=$(get_config_value 'db_link' '')
 DB_PREFIX=$(get_config_value 'db_prefix' 'wp_')
 DOMAIN=$(get_primary_host "${VVV_SITE_NAME}".test)
+NETWORK_IP=$(get_config_value 'vm_config.private_network_ip', '192.168.50.4');
+
 
 PUBLIC_DIR=$(get_config_value 'public_dir' "public_html")
 SITE_TITLE=$(get_config_value 'site_title' "${DOMAIN}")
@@ -36,7 +38,7 @@ fi
 setup_database() {
   echo -e " * Creating database '${DB_NAME}' (if it's not already there)"
   mysql -u root --password=root -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`"
-  echo -e " * Granting the wp user priviledges to the '${DB_NAME}' database"
+  echo -e " * Granting the wp user privileges to the '${DB_NAME}' database"
   mysql -u root --password=root -e "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO wp@localhost IDENTIFIED BY 'wp';"
   echo -e " * DB operations done."
 }
@@ -318,16 +320,25 @@ restore_or_install() {
     fi
 
 }
+##Change PHP-CLI to correct version
+vvv_restore_php_default
 
+## Install Redis
+apt-get install redis --assume-yes
+
+##site set up
 mkdir -p "${VVV_PATH_TO_SITE}"
 cd "${VVV_PATH_TO_SITE}"
 cp -r ../../tmp/* . 
 rm -rf ../../tmp
 #cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
 #  wp-config credentials are all determined in the .env built here using template.env
-sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
+sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
+sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" wp-cli-template.yml > wp-cli.yml
 
-setup_cli
+#NETWORK_IP
+
+#setup_cli
 setup_database
 setup_nginx_folders
 setup_composer_auth
