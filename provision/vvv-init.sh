@@ -6,6 +6,7 @@ set -eo pipefail
 echo " * Custom site template provisioner ${VVV_SITE_NAME} - downloads and installs a copy of WP stable for testing, building client sites, etc"
 
 # fetch the first host as the primary domain. If none is available, generate a default using the site name
+PROVISION_TYPE=$(get_config_value 'provision_type' "install")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
 DB_DUMP=$(get_config_value 'db_dump' 'database.sql')
@@ -320,63 +321,71 @@ restore_or_install() {
     fi
 
 }
-##Change PHP-CLI to correct version
-vvv_restore_php_default
 
-## Install Redis
-apt-get install redis --assume-yes
 
-##site set up
-mkdir -p "${VVV_PATH_TO_SITE}"
-cd "${VVV_PATH_TO_SITE}"
-cp -r ../../tmp/* . 
-rm -rf ../../tmp
-#cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
-#  wp-config credentials are all determined in the .env built here using template.env
-sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
-sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" wp-cli-template.yml > wp-cli.yml
+if [ "${PROVISION_TYPE}" == "install" ]; then
+	
+	##Change PHP-CLI to correct version
+	vvv_restore_php_default
 
-#NETWORK_IP
+	## Install Redis
+	apt-get install redis --assume-yes
+	
+	
+	##site set up
+	mkdir -p "${VVV_PATH_TO_SITE}"
+	cd "${VVV_PATH_TO_SITE}"
+	cp -r ../../tmp/* . 
+	rm -rf ../../tmp
+	#cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
+	#  wp-config credentials are all determined in the .env built here using template.env
+	sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
+	sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" wp-cli-template.yml > wp-cli.yml
 
-#setup_cli
-setup_database
-setup_nginx_folders
-setup_composer_auth
+	#NETWORK_IP
 
-if [ "${WP_TYPE}" == "none" ]; then
-# echo " * wp_type was set to none, provisioning WP was skipped, moving to Nginx configs"
-  echo " * wp_type was set to none, so provisioning WP as a dependency using composer along with other dependencies"
-  if [[ -f "${PUBLIC_DIR_PATH}/composer.json" ]]; then
-	  cd "${PUBLIC_DIR_PATH}"
-	  echo " * Install WP as a dependency along with other dependencies"
-  	noroot composer u
-    if ! $(noroot wp core is-installed ); then
-      restore_or_install
-      echo " * replacing all db references to the live domain with the dev domain"
-      wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
-    fi
-  fi
+	#setup_cli
+	setup_database
+	setup_nginx_folders
+	setup_composer_auth
+
+	if [ "${WP_TYPE}" == "none" ]; then
+	# echo " * wp_type was set to none, provisioning WP was skipped, moving to Nginx configs"
+	  echo " * wp_type was set to none, so provisioning WP as a dependency using composer along with other dependencies"
+	  if [[ -f "${PUBLIC_DIR_PATH}/composer.json" ]]; then
+		  cd "${PUBLIC_DIR_PATH}"
+		  echo " * Install WP as a dependency along with other dependencies"
+	  	noroot composer u
+	    if ! $(noroot wp core is-installed ); then
+	      restore_or_install
+	      echo " * replacing all db references to the live domain with the dev domain"
+	      wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
+	    fi
+	  fi
+	else
+	  echo " * Install type is '${WP_TYPE}'"
+	  # Install and configure the latest stable version of WordPress
+	  if [[ ! -f "${PUBLIC_DIR_PATH}/wp-load.php" ]]; then
+	    download_wordpress "${WP_VERSION}" "${WP_LOCALE}"
+	  fi
+
+	  if [[ ! -f "${PUBLIC_DIR_PATH}/wp-config.php" ]]; then
+	    initial_wpconfig
+	  fi
+
+	  if ! $(noroot wp core is-installed ); then
+		  restore_or_install
+	  else
+	    update_wp
+	  fi
+	fi
+
+	copy_nginx_configs
+	setup_wp_config_constants
+	install_plugins
+	install_themes
+
+	echo " * Site Template provisioner script completed for ${VVV_SITE_NAME}"
 else
-  echo " * Install type is '${WP_TYPE}'"
-  # Install and configure the latest stable version of WordPress
-  if [[ ! -f "${PUBLIC_DIR_PATH}/wp-load.php" ]]; then
-    download_wordpress "${WP_VERSION}" "${WP_LOCALE}"
-  fi
-
-  if [[ ! -f "${PUBLIC_DIR_PATH}/wp-config.php" ]]; then
-    initial_wpconfig
-  fi
-
-  if ! $(noroot wp core is-installed ); then
-	  restore_or_install
-  else
-    update_wp
-  fi
+	echo " * Site Template provisioner script ignored for ${VVV_SITE_NAME}"
 fi
-
-copy_nginx_configs
-setup_wp_config_constants
-install_plugins
-install_themes
-
-echo " * Site Template provisioner script completed for ${VVV_SITE_NAME}"
