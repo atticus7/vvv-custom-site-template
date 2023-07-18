@@ -6,6 +6,7 @@ set -eo pipefail
 echo " * Custom site template provisioner ${VVV_SITE_NAME} - downloads and installs a copy of WP stable for testing, building client sites, etc"
 
 # fetch the first host as the primary domain. If none is available, generate a default using the site name
+WWW_ROOT = "/srv/www"
 PRIMARY_SITE=$(get_config_value 'primary_site' "false")
 PROVISION_TYPE=$(get_config_value 'provision_type' "install")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
@@ -339,8 +340,8 @@ if [ "${PROVISION_TYPE}" == "install" ]; then
 	##site set up
 	mkdir -p "${VVV_PATH_TO_SITE}"
 	cd "${VVV_PATH_TO_SITE}"
-	cp -r "../../tmp/${DOMAIN}/*" . 
-	rm -rf "../../tmp/${DOMAIN}"
+	cp -r "${WWW_ROOT}/tmp/${DOMAIN}/*" . 
+	rm -rf "${WWW_ROOT}/tmp/${DOMAIN}"
 	
 	#  wp-config credentials are all determined in the .env built here using template.env
 	sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
