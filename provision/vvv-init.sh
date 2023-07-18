@@ -339,9 +339,9 @@ if [ "${PROVISION_TYPE}" == "install" ]; then
 	##site set up
 	mkdir -p "${VVV_PATH_TO_SITE}"
 	cd "${VVV_PATH_TO_SITE}"
-	cp -r ../../tmp/* . 
-	rm -rf ../../tmp
-	#cp "${VVV_PATH_TO_SITE}/conf/.env-example" "${VVV_PATH_TO_SITE}/conf/.env"
+	cp -r "../../tmp/${DOMAIN}/*" . 
+	rm -rf "../../tmp/${DOMAIN}"
+	
 	#  wp-config credentials are all determined in the .env built here using template.env
 	sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
 	sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" wp-cli-template.yml > wp-cli.yml
