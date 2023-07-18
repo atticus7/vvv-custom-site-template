@@ -6,6 +6,7 @@ set -eo pipefail
 echo " * Custom site template provisioner ${VVV_SITE_NAME} - downloads and installs a copy of WP stable for testing, building client sites, etc"
 
 # fetch the first host as the primary domain. If none is available, generate a default using the site name
+PRIMARY_SITE=$(get_config_value 'primary_site' "false")
 PROVISION_TYPE=$(get_config_value 'provision_type' "install")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
@@ -322,16 +323,19 @@ restore_or_install() {
 
 }
 
-
 if [ "${PROVISION_TYPE}" == "install" ]; then
 	
-	##Change PHP-CLI to correct version
-	vvv_restore_php_default
+	if [ "${PRIMARY_SITE}" == "true" ]; then
 
-	## Install Redis
-	apt-get install redis --assume-yes
+		##Change PHP-CLI to correct version
+		vvv_restore_php_default
+
+		## Install Redis
+		apt-get install redis --assume-yes
+
+	fi
 	
-	
+		
 	##site set up
 	mkdir -p "${VVV_PATH_TO_SITE}"
 	cd "${VVV_PATH_TO_SITE}"
