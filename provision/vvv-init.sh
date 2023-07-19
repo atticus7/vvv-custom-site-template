@@ -338,6 +338,8 @@ if [ "${PROVISION_TYPE}" == "install" ]; then
 	
 		
 	##site set up
+	echo " * Path to Site: ${VVV_PATH_TO_SITE}"
+	echo " * Path to Tmp Rep: ${WWW_ROOT}/tmp/${DOMAIN}/*"
 	mkdir -p "${VVV_PATH_TO_SITE}"
 	cd "${VVV_PATH_TO_SITE}"
 	cp -r "${WWW_ROOT}/tmp/${DOMAIN}/*" . 
