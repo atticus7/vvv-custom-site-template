@@ -6,7 +6,7 @@ set -eo pipefail
 echo " * Custom site template provisioner ${VVV_SITE_NAME} - downloads and installs a copy of WP stable for testing, building client sites, etc"
 
 # fetch the first host as the primary domain. If none is available, generate a default using the site name
-WWW_ROOT = "/srv/www"
+WWW_ROOT="/srv/www"
 PRIMARY_SITE=$(get_config_value 'primary_site' "false")
 PROVISION_TYPE=$(get_config_value 'provision_type' "install")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
