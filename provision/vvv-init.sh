@@ -340,12 +340,12 @@ if [ "${PROVISION_TYPE}" == "install" ]; then
 	##site set up
 	mkdir -p "${VVV_PATH_TO_SITE}"
 	cd "${VVV_PATH_TO_SITE}"
-	cp -r "${WWW_ROOT}/tmp/${DOMAIN}/"* . 
+	cp -a "${WWW_ROOT}/tmp/${DOMAIN}/". . 
 	rm -rf "${WWW_ROOT}/tmp/${DOMAIN}"
 	
 	#  wp-config credentials are all determined in the .env built here using template.env
 	sed -e "s|@@@DB_NAME@@@|${DB_NAME}|" -e "s|@@@DB_USER@@@|wp|" -e "s|@@@DB_PASSWORD@@@|wp|"  -e "s|@@@DB_PREFIX@@@|${DB_PREFIX}|" -e "s|@@@NETWORK_IP@@@|${NETWORK_IP}|" "${VVV_PATH_TO_SITE}/conf/template.env" > "${VVV_PATH_TO_SITE}/conf/.env"
-	sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" wp-cli-template.yml > wp-cli.yml
+	sed -e "s|@@@SITE_URL@@@|https://${DOMAIN}|" "${VVV_PATH_TO_SITE}/html/wp-cli-template.yml" > wp-cli.yml
 
 	#NETWORK_IP
 
@@ -364,7 +364,7 @@ if [ "${PROVISION_TYPE}" == "install" ]; then
 	    if ! $(noroot wp core is-installed ); then
 	      restore_or_install
 	      echo " * replacing all db references to the live domain with the dev domain"
-	      wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
+	      noroot wp search-replace "${LIVE_URL}" "https://${DOMAIN}"
 	    fi
 	  fi
 	else
